@@ -1,0 +1,460 @@
+// ============================================================================
+// JENEUS HelpDesk — Prisma Schema
+// PostgreSQL provider with snake_case mapping and full-text search indices.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  super_admin
+  admin
+  team_lead
+  agent
+
+  @@map("user_role")
+}
+
+enum TicketType {
+  incident
+  problem
+
+  @@map("ticket_type")
+}
+
+enum TicketStatus {
+  open
+  in_progress
+  pending
+  resolved
+  closed
+  cancelled
+
+  @@map("ticket_status")
+}
+
+enum TicketPriority {
+  critical
+  high
+  medium
+  low
+
+  @@map("ticket_priority")
+}
+
+enum TicketSource {
+  portal
+  email
+  phone
+
+  @@map("ticket_source")
+}
+
+enum ContractTier {
+  basic
+  standard
+  premium
+  enterprise
+
+  @@map("contract_tier")
+}
+
+enum AuthorType {
+  staff
+  client
+
+  @@map("author_type")
+}
+
+enum ActorType {
+  staff
+  client
+  system
+
+  @@map("actor_type")
+}
+
+enum NotificationType {
+  ticket_created
+  ticket_assigned
+  comment_added
+  status_changed
+  sla_warning
+  sla_breached
+  escalated
+
+  @@map("notification_type")
+}
+
+enum SentVia {
+  in_app
+  email
+  both
+
+  @@map("sent_via")
+}
+
+enum RecipientType {
+  staff
+  client
+
+  @@map("recipient_type")
+}
+
+// ============================================================================
+// MODELS
+// ============================================================================
+
+// --------------------------------------------------------------------------
+// User — JENEUS Staff
+// --------------------------------------------------------------------------
+model User {
+  id                 String    @id @default(uuid()) @map("id")
+  firstName          String    @map("first_name")
+  lastName           String    @map("last_name")
+  email              String    @unique @map("email")
+  passwordHash       String    @map("password_hash")
+  role               UserRole  @map("role")
+  teamId             String?   @map("team_id")
+  avatarUrl          String?   @map("avatar_url")
+  isActive           Boolean   @default(true) @map("is_active")
+  lastLoginAt        DateTime? @map("last_login_at")
+  twoFactorSecret    String?   @map("two_factor_secret")
+  twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
+  resetToken         String?   @map("reset_token")
+  resetTokenExpiry   DateTime? @map("reset_token_expiry")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+
+  // Relations
+  team               Team?            @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  assignedTickets    Ticket[]         @relation("AssignedAgent")
+  createdTickets     Ticket[]         @relation("CreatedBy")
+  managedClients     Client[]         @relation("AccountManager")
+  ledTeam            Team?            @relation("TeamLead")
+  knowledgeArticles  KnowledgeArticle[]
+
+  @@map("users")
+}
+
+// --------------------------------------------------------------------------
+// Team
+// --------------------------------------------------------------------------
+model Team {
+  id          String   @id @default(uuid()) @map("id")
+  name        String   @map("name")
+  leadId      String?  @unique @map("lead_id")
+  description String?  @map("description")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  lead                 User?         @relation("TeamLead", fields: [leadId], references: [id], onDelete: SetNull)
+  members              User[]
+  assignedTickets      Ticket[]      @relation("AssignedTeam")
+  defaultForCategories Category[]
+
+  @@map("teams")
+}
+
+// --------------------------------------------------------------------------
+// Client
+// --------------------------------------------------------------------------
+model Client {
+  id                String       @id @default(uuid()) @map("id")
+  name              String       @map("name")
+  industry          String?      @map("industry")
+  contractTier      ContractTier @map("contract_tier")
+  slaPolicyId       String?      @map("sla_policy_id")
+  primaryContactId  String?      @unique @map("primary_contact_id")
+  accountManagerId  String?      @map("account_manager_id")
+  isActive          Boolean      @default(true) @map("is_active")
+  logoUrl           String?      @map("logo_url")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  deletedAt         DateTime?    @map("deleted_at")
+
+  // Relations
+  slaPolicy         SLAPolicy?       @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  primaryContact    ClientContact?   @relation("PrimaryContact", fields: [primaryContactId], references: [id], onDelete: SetNull)
+  accountManager    User?            @relation("AccountManager", fields: [accountManagerId], references: [id], onDelete: SetNull)
+  contacts          ClientContact[]
+  tickets           Ticket[]
+
+  @@map("clients")
+}
+
+// --------------------------------------------------------------------------
+// ClientContact
+// --------------------------------------------------------------------------
+model ClientContact {
+  id            String   @id @default(uuid()) @map("id")
+  clientId      String   @map("client_id")
+  firstName     String   @map("first_name")
+  lastName      String   @map("last_name")
+  email         String   @unique @map("email")
+  phone         String?  @map("phone")
+  role          String   @map("role")
+  isPrimary     Boolean  @default(false) @map("is_primary")
+  portalAccess  Boolean  @default(true) @map("portal_access")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  client               Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  primaryOfClient      Client?             @relation("PrimaryContact")
+  tickets              Ticket[]
+  feedback             CustomerFeedback[]
+
+  @@map("client_contacts")
+}
+
+// --------------------------------------------------------------------------
+// Category
+// --------------------------------------------------------------------------
+model Category {
+  id            String   @id @default(uuid()) @map("id")
+  name          String   @map("name")
+  icon          String?  @map("icon")
+  defaultTeamId String?  @map("default_team_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  defaultTeam   Team?           @relation(fields: [defaultTeamId], references: [id], onDelete: SetNull)
+  subcategories Subcategory[]
+  tickets       Ticket[]
+  articles      KnowledgeArticle[]
+
+  @@map("categories")
+}
+
+// --------------------------------------------------------------------------
+// Subcategory
+// --------------------------------------------------------------------------
+model Subcategory {
+  id         String   @id @default(uuid()) @map("id")
+  categoryId String   @map("category_id")
+  name       String   @map("name")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  tickets  Ticket[]
+
+  @@map("subcategories")
+}
+
+// --------------------------------------------------------------------------
+// SLA Policy
+// --------------------------------------------------------------------------
+model SLAPolicy {
+  id                String   @id @default(uuid()) @map("id")
+  name              String   @map("name")
+  description       String?  @map("description")
+  rules             Json     @map("rules")
+  businessHoursOnly  Boolean  @default(false) @map("business_hours_only")
+  businessHours     Json?    @map("business_hours")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  clients  Client[]
+  tickets  Ticket[]
+
+  @@map("sla_policies")
+}
+
+// --------------------------------------------------------------------------
+// Ticket
+// --------------------------------------------------------------------------
+model Ticket {
+  id               String        @id @default(uuid()) @map("id")
+  ticketNumber     String        @unique @map("ticket_number")
+  type             TicketType    @map("type")
+  title            String        @map("title")
+  description      String        @map("description")
+  status           TicketStatus  @default(open) @map("status")
+  priority         TicketPriority @map("priority")
+  categoryId       String        @map("category_id")
+  subcategoryId    String?       @map("subcategory_id")
+  clientId         String        @map("client_id")
+  contactId        String        @map("contact_id")
+  assignedAgentId  String?       @map("assigned_agent_id")
+  assignedTeamId   String?       @map("assigned_team_id")
+  createdBy        String        @map("created_by")
+  parentProblemId  String?       @map("parent_problem_id")
+  slaPolicyId      String?       @map("sla_policy_id")
+  slaBreach        Boolean       @default(false) @map("sla_breach")
+  responseDueAt    DateTime?     @map("response_due_at")
+  resolutionDueAt  DateTime?     @map("resolution_due_at")
+  firstResponseAt  DateTime?     @map("first_response_at")
+  resolvedAt       DateTime?     @map("resolved_at")
+  closedAt         DateTime?     @map("closed_at")
+  recurrenceCount  Int           @default(0) @map("recurrence_count")
+  tags             String[]      @map("tags")
+  source           TicketSource? @map("source")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  deletedAt        DateTime?     @map("deleted_at")
+
+  // Relations
+  category          Category           @relation(fields: [categoryId], references: [id])
+  subcategory       Subcategory?       @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
+  client            Client             @relation(fields: [clientId], references: [id])
+  contact           ClientContact      @relation(fields: [contactId], references: [id])
+  assignedAgent     User?              @relation("AssignedAgent", fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  assignedTeam      Team?              @relation("AssignedTeam", fields: [assignedTeamId], references: [id], onDelete: SetNull)
+  createdByUser     User               @relation("CreatedBy", fields: [createdBy], references: [id])
+  parentProblem     Ticket?            @relation("ChildIncidents", fields: [parentProblemId], references: [id], onDelete: SetNull)
+  childIncidents    Ticket[]           @relation("ChildIncidents")
+  slaPolicy         SLAPolicy?         @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  comments          Comment[]
+  activityLogs      ActivityLog[]
+  attachments       Attachment[]
+  notifications     Notification[]
+  feedback          CustomerFeedback[]
+
+  // Indexes
+  @@index([clientId])
+  @@index([assignedAgentId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@index([categoryId])
+  @@index([parentProblemId])
+
+  @@map("tickets")
+}
+
+// --------------------------------------------------------------------------
+// Comment
+// --------------------------------------------------------------------------
+model Comment {
+  id         String     @id @default(uuid()) @map("id")
+  ticketId   String     @map("ticket_id")
+  authorId   String     @map("author_id")
+  authorType AuthorType @map("author_type")
+  body       String     @map("body")
+  isInternal  Boolean   @default(false) @map("is_internal")
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  // Relations
+  ticket      Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
+
+  @@map("comments")
+}
+
+// --------------------------------------------------------------------------
+// ActivityLog
+// --------------------------------------------------------------------------
+model ActivityLog {
+  id        String    @id @default(uuid()) @map("id")
+  ticketId  String    @map("ticket_id")
+  actorId   String    @map("actor_id")
+  actorType ActorType @map("actor_type")
+  action    String    @map("action")
+  oldValue  String?   @map("old_value")
+  newValue  String?   @map("new_value")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("activity_logs")
+}
+
+// --------------------------------------------------------------------------
+// Attachment
+// --------------------------------------------------------------------------
+model Attachment {
+  id         String   @id @default(uuid()) @map("id")
+  ticketId   String   @map("ticket_id")
+  commentId  String?  @map("comment_id")
+  filename   String   @map("filename")
+  fileUrl    String   @map("file_url")
+  fileSize   Int      @map("file_size")
+  mimeType   String   @map("mime_type")
+  uploadedBy String   @map("uploaded_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  ticket  Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@map("attachments")
+}
+
+// --------------------------------------------------------------------------
+// Notification
+// --------------------------------------------------------------------------
+model Notification {
+  id             String           @id @default(uuid()) @map("id")
+  recipientId    String           @map("recipient_id")
+  recipientType  RecipientType    @map("recipient_type")
+  ticketId       String?          @map("ticket_id")
+  type           NotificationType @map("type")
+  message        String           @map("message")
+  isRead         Boolean          @default(false) @map("is_read")
+  sentVia        SentVia          @map("sent_via")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  ticket Ticket? @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// --------------------------------------------------------------------------
+// KnowledgeArticle
+// --------------------------------------------------------------------------
+model KnowledgeArticle {
+  id              String   @id @default(uuid()) @map("id")
+  title           String   @map("title")
+  body            String   @map("body")
+  categoryId      String?  @map("category_id")
+  tags            String[] @map("tags")
+  viewCount       Int      @default(0) @map("view_count")
+  helpfulCount    Int      @default(0) @map("helpful_count")
+  notHelpfulCount Int      @default(0) @map("not_helpful_count")
+  isPublished     Boolean  @default(false) @map("is_published")
+  createdBy       String   @map("created_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  category  Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author    User     @relation(fields: [createdBy], references: [id])
+
+  @@map("knowledge_articles")
+}
+
+// --------------------------------------------------------------------------
+// CustomerFeedback
+// --------------------------------------------------------------------------
+model CustomerFeedback {
+  id              String   @id @default(uuid()) @map("id")
+  ticketId        String   @map("ticket_id")
+  clientContactId String   @map("client_contact_id")
+  rating          Int      @map("rating")
+  comment         String?  @map("comment")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  ticket        Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  clientContact ClientContact @relation(fields: [clientContactId], references: [id])
+
+  @@map("customer_feedback")
+}

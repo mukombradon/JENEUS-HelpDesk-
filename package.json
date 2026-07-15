@@ -1,0 +1,15 @@
+{
+  "name": "jeneus-helpdesk",
+  "private": true,
+  "description": "JENEUS HelpDesk — ITSM Ticketing System",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "setup": "cd backend && npm install && npx prisma generate && npx prisma db push && cd ../frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
