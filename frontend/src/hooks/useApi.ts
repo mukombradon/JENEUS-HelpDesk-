@@ -269,9 +269,7 @@ export function useAgentDashboard(userId: string) {
   return useQuery({
     queryKey: queryKeys.dashboard.agent(userId),
     queryFn: async () => {
-      const { data } = await api.get<AgentDashboard>(
-        `/dashboard/agent/${userId}`,
-      );
+      const { data } = await api.get<AgentDashboard>('/dashboard/agent');
       return data;
     },
     enabled: !!userId,

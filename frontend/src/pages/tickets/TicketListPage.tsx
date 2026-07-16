@@ -632,7 +632,9 @@ export default function TicketListPage() {
   const { data: categoriesData } = useQuery({
     queryKey: ["categories"],
     queryFn: () =>
-      api.get<Category[]>("/categories").then((r) => r.data),
+      api
+        .get<{ data: Category[] }>("/categories")
+        .then((r) => r.data.data),
   });
 
   const clients = clientsData ?? [];

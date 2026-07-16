@@ -48,13 +48,13 @@ export default function Sidebar() {
         )}
         style={{ height: "56px" }}
       >
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
           <img
-            src="/logo.svg"
+            src="/logo.jpeg"
             alt="JENEUS"
-            className="h-4 w-4 brightness-0 invert"
+            className="h-7 w-7 rounded-md object-cover"
           />
-        </div        >
+        </div>
         {!sidebarCollapsed && (
           <span className="text-sm font-semibold tracking-tight text-ink">
             JENEUS

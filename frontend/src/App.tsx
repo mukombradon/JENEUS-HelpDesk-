@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigate, Outlet, Routes, Route } from "react-router-dom";
 import { useAuthStore } from "./stores/authStore";
 import AppLayout from "./components/layout/AppLayout";
@@ -83,6 +84,25 @@ function PublicRoute() {
 // ---------------------------------------------------------------------------
 
 export default function App() {
+  const fetchProfile = useAuthStore((s) => s.fetchProfile);
+  const isInitializing = useAuthStore((s) => s.isInitializing);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  // Show a full-screen loading spinner while validating the stored token
+  if (isInitializing) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-canvas">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-hairline-strong border-t-primary" />
+          <p className="text-sm text-ink-subtle">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-canvas text-ink">
       <Routes>

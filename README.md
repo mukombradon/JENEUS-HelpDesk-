@@ -164,9 +164,47 @@ jeneus-helpdesk/
 ## 💻 Local Development Setup
 
 ### Prerequisites
-- Node.js v20+ / npm v10+
-- PostgreSQL 16+ (or Docker Desktop)
-- Redis 7+ (or Docker Desktop)
+- **Windows 10/11** with **WSL 2** enabled and **Ubuntu** installed (for Redis)
+- **Node.js** v20+ / npm v10+
+- **PostgreSQL** 16+ — installed and running on port 5432
+- **Redis** 7+ — installed via WSL (see below)
+- **Git** (to clone the repository)
+
+> **Note:** This guide assumes a **Windows + WSL** setup. If you have Docker Desktop, you can alternatively run `docker compose up -d` to start PostgreSQL and Redis containers instead of installing them natively.
+
+### 0. Install & Configure Redis (Windows via WSL)
+
+This project requires Redis for BullMQ job queues and Socket.io pub/sub. Since Redis doesn't natively run on Windows, we use WSL 2.
+
+1. **Install WSL 2 and Ubuntu** (if not already installed):
+   ```bash
+   wsl --install -d Ubuntu
+   ```
+   Restart your machine if prompted, then set up your Ubuntu username/password.
+
+2. **Install Redis inside WSL Ubuntu:**
+   ```bash
+   wsl -d Ubuntu
+   sudo apt-get update
+   sudo apt-get install -y redis-server
+   exit
+   ```
+
+3. **Configure Redis to accept connections from Windows:**
+   ```bash
+   wsl -d Ubuntu --user root -- sh -c "echo 'bind 0.0.0.0' >> /etc/redis/redis.conf"
+   ```
+
+4. **Start Redis:**
+   ```bash
+   wsl -d Ubuntu --user root -- service redis-server start
+   ```
+
+5. **Verify Redis is working:**
+   ```bash
+   wsl -d Ubuntu -- redis-cli ping
+   # Should output: PONG
+   ```
 
 ### 1. Backend Setup
 
@@ -181,22 +219,43 @@ jeneus-helpdesk/
    ```
 
 3. **Configure environment variables:**
-   Create a `.env` file in `backend/` (copy from `.env.example`):
+   Create a `.env` file in `backend/`:
    ```env
+   # ─── App ───────────────────────────────────────────
    NODE_ENV=development
    PORT=4000
-   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/jeneus_helpdesk?schema=public"
-   REDIS_URL="redis://localhost:6379"
+   FRONTEND_URL=http://localhost:3000
+
+   # ─── Database ──────────────────────────────────────
+   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/jeneus_helpdesk
+
+   # ─── Redis ─────────────────────────────────────────
+   REDIS_URL=redis://localhost:6379
+
+   # ─── JWT ───────────────────────────────────────────
    JWT_ACCESS_SECRET=your-access-secret-key-here
    JWT_REFRESH_SECRET=your-refresh-secret-key-here
    JWT_ACCESS_EXPIRY=15m
    JWT_REFRESH_EXPIRY=7d
+
+   # ─── Email (SMTP) ──────────────────────────────────
    SMTP_HOST=localhost
    SMTP_PORT=1025
    SMTP_USER=
    SMTP_PASS=
-   EMAIL_FROM="noreply@jeneusco.com"
-   CORS_ORIGIN=http://localhost:5173
+   EMAIL_FROM="JENEUS HelpDesk <noreply@jeneusco.com>"
+
+   # ─── File Storage (S3 or Cloudflare R2) ────────────
+   S3_BUCKET=jeneus-helpdesk-attachments
+   S3_REGION=us-east-1
+   S3_ACCESS_KEY=
+   S3_SECRET_KEY=
+
+   # ─── App Configuration ─────────────────────────────
+   SLA_CHECK_INTERVAL_MINUTES=5
+   RECURRENCE_WINDOW_DAYS=30
+   RECURRENCE_THRESHOLD=3
+   TICKET_REOPEN_WINDOW_DAYS=5
    ```
 
 4. **Push schema to database and generate Prisma client:**
@@ -205,10 +264,11 @@ jeneus-helpdesk/
    npx prisma generate
    ```
 
-5. **Seed the database** (populates demo data — 10 users, 3 clients, 19 tickets, SLA policies, KB articles, etc.):
+5. **Seed the database** (populates demo data — 10 users, 3 clients, 15 tickets, SLA policies, KB articles, etc.):
    ```bash
    npx tsx prisma/seed.ts
    ```
+   > **Note:** The seed script has been patched to create User records for client contacts (needed for the `Ticket.createdBy` foreign key). If you encounter a foreign key violation on `tickets_created_by_fkey`, make sure the `client` role exists in `prisma/schema.prisma` under the `UserRole` enum — it was added in a previous fix.
 
 6. **Start the backend development server:**
    ```bash
@@ -239,7 +299,42 @@ jeneus-helpdesk/
    ```bash
    npm run dev
    ```
-   The app launches at `http://localhost:5173`.
+   The app launches at `http://localhost:3000`.
+
+### 3. One-Click Startup Script
+
+A `start.bat` script is included in the project root. Double-click it or run:
+
+```bash
+start.bat
+```
+
+This will start Redis (WSL), the backend (port 4000), and the frontend (port 3000) all at once in separate windows.
+
+### 4. Quick Start After Setup (subsequent sessions)
+
+Once everything is installed and configured, each time you want to run the project:
+
+1. **Start Redis:**
+   ```bash
+   wsl -d Ubuntu --user root -- service redis-server start
+   ```
+
+2. **Start the backend:**
+   ```bash
+   cd backend
+   npm run dev
+   ```
+
+3. **Start the frontend (in a new terminal):**
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+
+4. Open **http://localhost:3000** in your browser.
+
+Or simply run `start.bat` from the project root.
 
 ---
 

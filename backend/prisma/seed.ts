@@ -380,6 +380,74 @@ async function main() {
   console.log('  Clients & Contacts created');
 
   // ==========================================================================
+  // 5b. Create User records for client contacts (needed for ticket.createdBy)
+  // ==========================================================================
+  const acmeUser1 = await prisma.user.create({
+    data: {
+      firstName: acmeContact1.firstName,
+      lastName: acmeContact1.lastName,
+      email: acmeContact1.email,
+      passwordHash,
+      role: 'client',
+    },
+  });
+  const acmeUser2 = await prisma.user.create({
+    data: {
+      firstName: acmeContact2.firstName,
+      lastName: acmeContact2.lastName,
+      email: acmeContact2.email,
+      passwordHash,
+      role: 'client',
+    },
+  });
+  const acmeUser3 = await prisma.user.create({
+    data: {
+      firstName: acmeContact3.firstName,
+      lastName: acmeContact3.lastName,
+      email: acmeContact3.email,
+      passwordHash,
+      role: 'client',
+    },
+  });
+  const globexUser1 = await prisma.user.create({
+    data: {
+      firstName: globexContact1.firstName,
+      lastName: globexContact1.lastName,
+      email: globexContact1.email,
+      passwordHash,
+      role: 'client',
+    },
+  });
+  const globexUser2 = await prisma.user.create({
+    data: {
+      firstName: globexContact2.firstName,
+      lastName: globexContact2.lastName,
+      email: globexContact2.email,
+      passwordHash,
+      role: 'client',
+    },
+  });
+  const initechUser1 = await prisma.user.create({
+    data: {
+      firstName: initechContact1.firstName,
+      lastName: initechContact1.lastName,
+      email: initechContact1.email,
+      passwordHash,
+      role: 'client',
+    },
+  });
+  const initechUser2 = await prisma.user.create({
+    data: {
+      firstName: initechContact2.firstName,
+      lastName: initechContact2.lastName,
+      email: initechContact2.email,
+      passwordHash,
+      role: 'client',
+    },
+  });
+  console.log('  Client user accounts created');
+
+  // ==========================================================================
   // 6. Tickets (3 problems + 12 incidents = 15)
   // ==========================================================================
 
@@ -402,7 +470,7 @@ async function main() {
       contactId: acmeContact1.id,
       assignedAgentId: teamLead.id,
       assignedTeamId: networkTeam.id,
-      createdBy: acmeContact1.id,
+      createdBy: acmeUser1.id,
       slaPolicyId: enterpriseSLA.id,
       recurrenceCount: 4,
       responseDueAt: addHours(daysAgo(25), 2),
@@ -433,7 +501,7 @@ async function main() {
       contactId: globexContact1.id,
       assignedAgentId: agent1.id,
       assignedTeamId: softwareTeam.id,
-      createdBy: globexContact1.id,
+      createdBy: globexUser1.id,
       slaPolicyId: premiumSLA.id,
       responseDueAt: addHours(daysAgo(5), 2),
       resolutionDueAt: addHours(daysAgo(5), 8),
@@ -462,7 +530,7 @@ async function main() {
       contactId: initechContact1.id,
       assignedAgentId: agent2.id,
       assignedTeamId: hardwareTeam.id,
-      createdBy: initechContact1.id,
+      createdBy: initechUser1.id,
       slaPolicyId: basicSLA.id,
       responseDueAt: addHours(daysAgo(3), 24),
       resolutionDueAt: addHours(daysAgo(3), 72),
@@ -490,7 +558,7 @@ async function main() {
       contactId: acmeContact2.id,
       assignedAgentId: teamLead.id,
       assignedTeamId: networkTeam.id,
-      createdBy: acmeContact2.id,
+      createdBy: acmeUser2.id,
       parentProblemId: problem1.id,
       slaPolicyId: enterpriseSLA.id,
       responseDueAt: addHours(daysAgo(30), 2),
@@ -520,7 +588,7 @@ async function main() {
       contactId: acmeContact1.id,
       assignedAgentId: teamLead.id,
       assignedTeamId: networkTeam.id,
-      createdBy: acmeContact1.id,
+      createdBy: acmeUser1.id,
       slaPolicyId: enterpriseSLA.id,
       responseDueAt: addHours(daysAgo(28), 2),
       resolutionDueAt: addHours(daysAgo(28), 8),
@@ -550,7 +618,7 @@ async function main() {
       contactId: acmeContact3.id,
       assignedAgentId: agent1.id,
       assignedTeamId: networkTeam.id,
-      createdBy: acmeContact3.id,
+      createdBy: acmeUser3.id,
       slaPolicyId: enterpriseSLA.id,
       responseDueAt: addHours(daysAgo(26), 4),
       resolutionDueAt: addHours(daysAgo(26), 24),
@@ -580,7 +648,7 @@ async function main() {
       contactId: acmeContact2.id,
       assignedAgentId: teamLead.id,
       assignedTeamId: networkTeam.id,
-      createdBy: acmeContact2.id,
+      createdBy: acmeUser2.id,
       parentProblemId: problem1.id,
       slaPolicyId: enterpriseSLA.id,
       responseDueAt: addHours(daysAgo(22), 2),
@@ -611,7 +679,7 @@ async function main() {
       contactId: acmeContact1.id,
       assignedAgentId: agent2.id,
       assignedTeamId: softwareTeam.id,
-      createdBy: acmeContact1.id,
+      createdBy: acmeUser1.id,
       slaPolicyId: enterpriseSLA.id,
       responseDueAt: addHours(daysAgo(7), 4),
       resolutionDueAt: addHours(daysAgo(7), 24),
@@ -639,7 +707,7 @@ async function main() {
       contactId: globexContact2.id,
       assignedAgentId: agent1.id,
       assignedTeamId: softwareTeam.id,
-      createdBy: globexContact2.id,
+      createdBy: globexUser2.id,
       parentProblemId: problem2.id,
       slaPolicyId: premiumSLA.id,
       responseDueAt: addHours(daysAgo(6), 2),
@@ -669,7 +737,7 @@ async function main() {
       contactId: globexContact1.id,
       assignedAgentId: null,
       assignedTeamId: accessTeam.id,
-      createdBy: globexContact1.id,
+      createdBy: globexUser1.id,
       slaPolicyId: premiumSLA.id,
       responseDueAt: addHours(daysAgo(2), 8),
       resolutionDueAt: addHours(daysAgo(2), 48),
@@ -696,7 +764,7 @@ async function main() {
       contactId: globexContact2.id,
       assignedAgentId: agent1.id,
       assignedTeamId: hardwareTeam.id,
-      createdBy: globexContact2.id,
+      createdBy: globexUser2.id,
       slaPolicyId: premiumSLA.id,
       responseDueAt: addHours(daysAgo(4), 24),
       resolutionDueAt: addHours(daysAgo(4), 72),
@@ -724,7 +792,7 @@ async function main() {
       contactId: globexContact1.id,
       assignedAgentId: agent2.id,
       assignedTeamId: accessTeam.id,
-      createdBy: globexContact1.id,
+      createdBy: globexUser1.id,
       slaPolicyId: premiumSLA.id,
       responseDueAt: addHours(daysAgo(1), 4),
       resolutionDueAt: addHours(daysAgo(1), 24),
@@ -752,7 +820,7 @@ async function main() {
       contactId: initechContact1.id,
       assignedAgentId: agent1.id,
       assignedTeamId: hardwareTeam.id,
-      createdBy: initechContact1.id,
+      createdBy: initechUser1.id,
       parentProblemId: problem3.id,
       slaPolicyId: basicSLA.id,
       responseDueAt: addHours(daysAgo(10), 24),
@@ -782,7 +850,7 @@ async function main() {
       contactId: initechContact2.id,
       assignedAgentId: agent2.id,
       assignedTeamId: accessTeam.id,
-      createdBy: initechContact2.id,
+      createdBy: initechUser2.id,
       slaPolicyId: basicSLA.id,
       responseDueAt: addHours(daysAgo(8), 24),
       resolutionDueAt: addHours(daysAgo(8), 72),
@@ -812,7 +880,7 @@ async function main() {
       contactId: initechContact1.id,
       assignedAgentId: null,
       assignedTeamId: null,
-      createdBy: initechContact1.id,
+      createdBy: initechUser1.id,
       slaPolicyId: basicSLA.id,
       responseDueAt: addHours(now, 8),
       resolutionDueAt: addHours(now, 48),

@@ -93,8 +93,12 @@ export default function ResetPasswordPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
           {/* Logo */}
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary shadow-sm">
-            <span className="text-lg font-bold text-white">J</span>
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-lg">
+            <img
+              src="/logo.jpeg"
+              alt="JENEUS"
+              className="h-14 w-14 rounded-lg object-cover"
+            />
           </div>
           <CardTitle className="text-base">Set new password</CardTitle>
           <CardDescription>

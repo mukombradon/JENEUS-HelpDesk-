@@ -2,6 +2,7 @@ import axios, {
   type AxiosError,
   type InternalAxiosRequestConfig,
 } from "axios";
+import { deepCamelToSnake } from "./utils";
 import type {
   AuthResponse,
   User,
@@ -68,6 +69,19 @@ api.interceptors.request.use(
   },
   (error: AxiosError) => Promise.reject(error),
 );
+
+// ---------------------------------------------------------------------------
+// Response interceptor – normalise camelCase → snake_case at the API
+// boundary so frontend types (all snake_case) match backend (Prisma
+// convention = camelCase).
+// ---------------------------------------------------------------------------
+
+api.interceptors.response.use((response) => {
+  if (response.data && typeof response.data === "object") {
+    response.data = deepCamelToSnake(response.data);
+  }
+  return response;
+});
 
 // ---------------------------------------------------------------------------
 // Response interceptor – refresh tokens on 401
@@ -188,7 +202,7 @@ export const auth = {
 
   logout: () => api.post("/auth/logout"),
 
-  getMe: () => api.get<User>("/auth/me"),
+  getMe: () => api.get<{ user: User }>("/auth/me"),
 
   forgotPassword: (email: string) =>
     api.post<{ message: string }>("/auth/forgot-password", { email }),
@@ -309,7 +323,7 @@ export const teams = {
 // ---------------------------------------------------------------------------
 
 export const categories = {
-  list: () => api.get<Category[]>("/categories"),
+  list: () => api.get<{ data: Category[] }>("/categories"),
 
   get: (id: string) => api.get<Category>(`/categories/${id}`),
 

@@ -21,6 +21,7 @@ enum UserRole {
   admin
   team_lead
   agent
+  client
 
   @@map("user_role")
 }

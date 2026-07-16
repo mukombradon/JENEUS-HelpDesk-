@@ -417,7 +417,10 @@ function ClientsTab() {
 function CategoriesTab() {
   const { data: categories, isLoading, isError, refetch } = useQuery({
     queryKey: ["settings", "categories"],
-    queryFn: () => api.get<Category[]>("/categories").then((r) => r.data),
+    queryFn: () =>
+      api
+        .get<{ data: Category[] }>("/categories")
+        .then((r) => r.data.data),
   });
 
   if (isLoading) {

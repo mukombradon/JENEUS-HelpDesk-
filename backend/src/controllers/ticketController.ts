@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as ticketService from '../services/ticketService';
-import type { CreateTicketInput, UpdateTicketInput, TicketQueryInput } from '../validators/ticket';
+import { ticketQuerySchema } from '../validators/ticket';
+import type { CreateTicketInput, UpdateTicketInput } from '../validators/ticket';
 
 // ============================================================================
 // Ticket CRUD
@@ -56,8 +57,18 @@ export async function list(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const filters = (req.query ?? {}) as unknown as TicketQueryInput;
-    const result = await ticketService.listTickets(filters);
+    const parseResult = ticketQuerySchema.safeParse(req.query);
+    if (!parseResult.success) {
+      res.status(400).json({
+        error: {
+          message: 'Invalid query parameters',
+          code: 'VALIDATION_ERROR',
+          details: parseResult.error.flatten().fieldErrors,
+        },
+      });
+      return;
+    }
+    const result = await ticketService.listTickets(parseResult.data);
 
     res.json(result);
   } catch (err) {

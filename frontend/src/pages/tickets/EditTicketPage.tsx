@@ -174,7 +174,10 @@ export default function EditTicketPage() {
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
-    queryFn: () => api.get<Category[]>("/categories").then((r) => r.data),
+    queryFn: () =>
+      api
+        .get<{ data: Category[] }>("/categories")
+        .then((r) => r.data.data),
   });
 
   const { data: subcategories = [] } = useQuery({

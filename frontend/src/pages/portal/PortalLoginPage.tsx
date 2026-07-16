@@ -7,7 +7,6 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  Building2,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -65,8 +64,12 @@ export default function PortalLoginPage() {
       <div className="w-full max-w-md">
         {/* Logo / Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-primary/20 mb-4">
-            <Building2 className="h-7 w-7 text-primary" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4">
+            <img
+              src="/logo.jpeg"
+              alt="JENEUS"
+              className="w-16 h-16 rounded-xl object-cover"
+            />
           </div>
           <h1 className="text-2xl font-bold text-ink">Client Portal</h1>
           <p className="text-sm text-ink-muted mt-1">
